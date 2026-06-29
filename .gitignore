@@ -1,0 +1,29 @@
+# --- Control room: private cram/timing notes, never pushed ---
+# (CLAUDE.md and workflows/ ARE public — they're part of the "how this was built" showcase)
+_control/
+
+# --- Python ---
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+*.egg-info/
+dist/
+build/
+
+# --- Env / secrets ---
+.env
+.env.*
+*.key
+secrets.*
+
+# --- Data dumps (decide per-challenge what to commit; default ignore raw inputs) ---
+data/*
+!data/.gitkeep
+
+# --- OS / editor ---
+.DS_Store
+.idea/
+.vscode/

@@ -1,0 +1,13 @@
+# AI/data extras — install at go-time ONLY if the problem needs them:
+#   pip install -r requirements-ai.txt
+# Kept separate so the base env stays lean and fast.
+anthropic>=0.39
+fastapi>=0.115
+uvicorn>=0.30
+numpy>=2.0
+pandas>=2.2
+scikit-learn>=1.5
+# Vector / retrieval (uncomment as needed):
+# pgvector>=0.3
+# sentence-transformers>=3.0
+# faiss-cpu>=1.8
