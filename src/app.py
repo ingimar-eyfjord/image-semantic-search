@@ -30,11 +30,22 @@ _vectors, _filenames = load_index(INDEX_DIR)
 
 
 @app.get("/api/search")
-def search(q: str = Query(..., min_length=1), k: int = Query(12, ge=1, le=50)) -> dict:
+def search(
+    q: str = Query(..., min_length=1),
+    k: int = Query(12, ge=1, le=50),
+    min_score: float = Query(0.23, ge=0.0, le=1.0),
+) -> dict:
+    """Return the top-k images most similar to the query text.
+
+    ``min_score`` drops weak matches so a query with few true matches returns a short,
+    relevant list instead of padding the grid with unrelated images. The default of 0.23
+    was tuned with the eval harness (see eval.py): it maximized F1 across a labeled set of
+    queries. CLIP cosine scores run ~0.15 for unrelated and ~0.25+ for a strong match.
+    """
     start = time.perf_counter()
     query_vec = _embedder.embed_text(q)
     scores = _vectors @ query_vec  # cosine similarity (vectors are normalized)
-    top = np.argsort(-scores)[:k]
+    ranked = [i for i in np.argsort(-scores) if scores[i] >= min_score][:k]
     results = [
         {
             "filename": _filenames[i],
@@ -42,7 +53,7 @@ def search(q: str = Query(..., min_length=1), k: int = Query(12, ge=1, le=50)) -
             "image_url": f"/images/{_filenames[i]}",
             "score": round(float(scores[i]), 4),
         }
-        for i in top
+        for i in ranked
     ]
     took_ms = round((time.perf_counter() - start) * 1000, 1)
     return {"query": q, "took_ms": took_ms, "results": results}

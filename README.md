@@ -77,6 +77,20 @@ GET /api/search?q=<text>&k=<1..50>
 Returns JSON: the query echoed back, `took_ms`, and a `results` array of
 `{ filename, thumb_url, image_url, score }`, sorted by descending cosine similarity.
 
+## Evaluation
+
+`eval.py` is a small harness that scores retrieval quality against a set of labeled
+queries. It reuses `ClipEmbedder` and `load_index` directly (no HTTP), so it measures
+the same search path the API uses. For each query it reports top-1 accuracy and
+precision@5, then sweeps the `min_score` cutoff from 0.15 to 0.30 and prints the value
+that best separates relevant from irrelevant matches (highest F1 over every
+query-image pair). That value is the floor exposed as `min_score` on `/api/search`.
+
+```bash
+python -m eval                       # local, needs deps + a prebuilt data/index
+docker run --rm imgsearch python -m eval   # inside the container (index is bundled)
+```
+
 ## Flow
 
 ```mermaid
