@@ -508,10 +508,13 @@
       "Drop an image here, or click to choose. It is indexed instantly and becomes searchable.";
     let uploading = false;
 
+    // The drop zone's neutral resting classes (mirrors the inline class on #dropZone).
+    const DROP_DEFAULT_CLASS =
+      "mt-5 flex w-full items-center gap-4 border border-dashed border-line bg-paper-raised px-4 py-3 text-left transition-colors duration-150 hover:border-ink focus:outline-none focus-visible:border-ink";
+
     // Reset the drop zone to its neutral, paper-raised resting state.
     function resetDropZone() {
-      els.dropZone.className =
-        "mt-5 flex w-full items-center gap-4 border border-dashed border-line bg-paper-raised px-4 py-3 text-left transition-colors duration-150 hover:border-ink focus:outline-none focus-visible:border-ink";
+      els.dropZone.className = DROP_DEFAULT_CLASS;
       els.dropLabel.textContent = DROP_DEFAULT_LABEL;
       els.dropLabel.classList.remove("text-brick");
       els.dropLabel.classList.add("text-ink");

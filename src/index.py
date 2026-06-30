@@ -78,21 +78,18 @@ def update_index(image_dir: Path, index_dir: Path) -> int:
     existing = set(filenames)
 
     # Keep unchanged rows (preserving vector/name alignment), drop deletions.
-    keep = [(name, i) for i, name in enumerate(filenames) if name in current]
+    keep_idx = [i for i, name in enumerate(filenames) if name in current]
     removed = [name for name in filenames if name not in current]
     new_paths = [p for name, p in current.items() if name not in existing]
 
-    kept_names = [name for name, _ in keep]
-    if keep:
-        kept_vectors = vectors[[i for _, i in keep]]
-    else:
-        kept_vectors = np.empty((0, vectors.shape[1]), vectors.dtype)
+    kept_names = [filenames[i] for i in keep_idx]
+    kept_vectors = vectors[keep_idx]  # vectors[[]] is a valid (0, dim) array
 
     if new_paths:
         new_vectors = ClipEmbedder().embed_images(new_paths)
         for p in new_paths:
             _make_thumbnail(p, thumb_dir)
-        out_vectors = np.vstack([kept_vectors, new_vectors]) if len(kept_vectors) else new_vectors
+        out_vectors = np.vstack([kept_vectors, new_vectors])
         out_names = kept_names + [p.name for p in new_paths]
     else:
         out_vectors, out_names = kept_vectors, kept_names
