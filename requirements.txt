@@ -1,0 +1,7 @@
+torch
+sentence-transformers
+fastapi
+uvicorn[standard]
+pillow
+numpy
+python-multipart

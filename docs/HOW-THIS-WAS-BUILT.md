@@ -26,19 +26,44 @@ The scripts that drove this are in [`workflows/`](../workflows): `scope-map`, `i
 
 ## What I actually did for this problem
 
-<Fill at go-time: the specific decomposition. e.g.
-- Mapped the dataset with scope-map (N readers) -> found <shape>.
-- Chose architecture X over Y because <reason>.
-- Fanned out M implementation tasks: <list>.
-- Verification caught <real issue> that linting passed.
-- Integrated and ran end-to-end: <result>.>
+The problem in one sentence: let a user find images in a folder by describing them in plain
+language, ranked by meaning rather than filenames or tags.
+
+- **Scoped the data shape first.** The input is a flat folder of images and the query is free
+  text. That immediately framed the core decision as cross-modal retrieval, which is what fixed
+  the architecture before any code was written.
+- **Chose CLIP + a NumPy index over a tagging pipeline or a vector database.** CLIP puts images
+  and text in one shared space, so search is a cosine similarity and no captioning step is
+  needed. At folder scale a single normalized matrix and one matrix-vector multiply beats
+  standing up FAISS or pgvector, which would have added operational weight for no latency win.
+- **Fanned out along independent seams that own distinct modules:** the embedding wrapper
+  (`src/embeddings.py`), the index builder CLI (`src/index.py`), the FastAPI service
+  (`src/app.py`), and the zero-build front end (`web/index.html`). These share only a small,
+  fixed contract (the on-disk index format and the `/api/search` JSON shape), so they were built
+  concurrently without collision.
+- **Verified adversarially, then ran it end to end.** The key correctness gate was that the
+  vectors are L2-normalized in exactly one place so the dot product genuinely equals cosine
+  similarity, and that the static mounts are ordered after the API and root routes so `/api` and
+  `/` are not shadowed. A real indexing run plus live queries confirmed both, which a linter
+  alone could not.
 
 ## Where I used judgment over automation
 
-<Fill: the calls a model wouldn't make on its own — the architecture choice, what to cut for
-time, a verification finding I overrode or accepted, the trade-offs below.>
+- **No vector database, on purpose.** The easy "scalable" answer is to reach for FAISS or
+  pgvector. The right call at this scale was a plain NumPy dot product: simpler to run, trivial
+  to reason about, and fast enough. The README documents the exact threshold at which that
+  decision flips.
+- **Normalize once, multiply many.** Pushing L2 normalization into the embedder (rather than at
+  query time) is what lets every search be a single matrix-vector multiply. That is a
+  performance-shaping choice, not something to leave to chance in generated code.
+- **Precomputed thumbnails and a single startup load.** Serving 400px thumbnails and loading the
+  model and index once at import keeps both cost and latency down; these were deliberate trade-offs
+  for a snappy demo, not defaults.
 
 ## Trade-offs made for the timebox
 
-- <deferred>
-- <known limitation>
+- The index is static; adding or removing images requires a rebuild. No incremental update path.
+- Single-process and in-memory: no auth, pagination, or horizontal scaling.
+- Linear scan over all vectors per query, which is fine at folder scale but would need FAISS or
+  pgvector at hundreds of thousands of images and up.
+- Ranking quality is capped by CLIP `ViT-B/32`; no re-ranking or hybrid keyword+vector search.

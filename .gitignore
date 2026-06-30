@@ -19,9 +19,9 @@ build/
 *.key
 secrets.*
 
-# --- Data dumps (decide per-challenge what to commit; default ignore raw inputs) ---
-data/*
-!data/.gitkeep
+# --- Data: ship the sample images so the repo runs out of the box; the index is a
+#     build artifact (regenerate with `python -m src.index data/images`). ---
+data/index/
 
 # --- OS / editor ---
 .DS_Store
