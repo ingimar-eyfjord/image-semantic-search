@@ -1,78 +1,83 @@
 <!DOCTYPE html>
-<html lang="en" class="dark">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Image Semantic Search</title>
+  <title>Image Index · Semantic Search</title>
 
   <!-- Tailwind via CDN (no build step) -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
-    // Extend Tailwind with a refined, custom palette + fonts
+    // Editorial "archive index" palette + type pairing, deliberately not the
+    // dark/neon-violet/serif-display default.
     tailwind.config = {
-      darkMode: "class",
       theme: {
         extend: {
           colors: {
-            // Warm-neutral "ink" scale for a premium, non-generic feel
-            ink: {
-              950: "#0a0a0f",
-              900: "#101018",
-              800: "#171722",
-              700: "#22222f",
-              600: "#33333f",
+            // Warm paper surfaces
+            paper: {
+              DEFAULT: "#f4f1ea",
+              raised:  "#fbfaf6",
+              sunk:    "#ece7db",
             },
-            accent: {
-              DEFAULT: "#a78bfa", // soft violet
-              soft: "#c4b5fd",
-              deep: "#7c3aed",
+            // Near-black warm ink for text
+            ink: {
+              DEFAULT: "#1b1a17",
+              soft:    "#56524a",
+              faint:   "#8c887e",
+            },
+            line: "#ddd7c9",      // hairline rules
+            // One chosen accent: a muted brick / terracotta
+            brick: {
+              DEFAULT: "#b8432a",
+              deep:    "#8f3220",
+              wash:    "#f0ddd4",
             },
           },
           fontFamily: {
-            sans: ["Inter", "ui-sans-serif", "system-ui", "sans-serif"],
-            display: ["Fraunces", "Georgia", "serif"],
-          },
-          boxShadow: {
-            card: "0 1px 2px rgba(0,0,0,.4), 0 8px 24px -8px rgba(0,0,0,.5)",
-            glow: "0 0 0 1px rgba(167,139,250,.25), 0 12px 40px -12px rgba(124,58,237,.45)",
+            sans:    ["Inter", "ui-sans-serif", "system-ui", "sans-serif"],
+            display: ["'Space Grotesk'", "Inter", "sans-serif"],
+            mono:    ["'IBM Plex Mono'", "ui-monospace", "SFMono-Regular", "monospace"],
           },
         },
       },
     };
   </script>
 
-  <!-- Typography: Inter (UI) + Fraunces (display) -->
+  <!-- Type pairing: Space Grotesk (display) + Inter (UI) + IBM Plex Mono (labels) -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link
-    href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600;700&display=swap"
+    href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap"
     rel="stylesheet"
   />
 
   <style>
-    /* A subtle ambient gradient backdrop + grain for depth */
+    html { background: #f4f1ea; }
+
+    /* Faint engineering-paper grid: signals "index / catalog", not gradient glow */
     body {
-      background:
-        radial-gradient(60rem 60rem at 80% -10%, rgba(124, 58, 237, 0.18), transparent 60%),
-        radial-gradient(50rem 50rem at -10% 20%, rgba(56, 189, 248, 0.10), transparent 55%),
-        #0a0a0f;
+      background-color: #f4f1ea;
+      background-image:
+        linear-gradient(to right,  rgba(27,26,23,0.035) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(27,26,23,0.035) 1px, transparent 1px);
+      background-size: 32px 32px;
     }
 
-    /* Masonry layout via CSS columns — gives the organic, gallery feel */
-    .masonry {
-      column-gap: 1rem;
+    /* Tabular, uppercase micro-labels: the archival "catalog" voice */
+    .label {
+      font-family: "IBM Plex Mono", ui-monospace, monospace;
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+      font-size: 0.6875rem;
     }
-    @media (min-width: 640px)  { .masonry { column-count: 2; } }
-    @media (min-width: 768px)  { .masonry { column-count: 3; } }
-    @media (min-width: 1280px) { .masonry { column-count: 4; } }
-    .masonry > * { break-inside: avoid; margin-bottom: 1rem; }
 
-    /* Smooth entrance for cards/skeletons */
+    /* Restrained entrance */
     @keyframes rise {
-      from { opacity: 0; transform: translateY(8px); }
+      from { opacity: 0; transform: translateY(6px); }
       to   { opacity: 1; transform: translateY(0); }
     }
-    .rise { animation: rise 0.5s cubic-bezier(0.16, 1, 0.3, 1) both; }
+    .rise { animation: rise 0.45s cubic-bezier(0.16, 1, 0.3, 1) both; }
 
     /* Skeleton shimmer */
     @keyframes shimmer { 100% { transform: translateX(100%); } }
@@ -80,118 +85,138 @@
       content: "";
       position: absolute; inset: 0;
       transform: translateX(-100%);
-      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.06), transparent);
+      background: linear-gradient(90deg, transparent, rgba(27,26,23,0.06), transparent);
       animation: shimmer 1.5s infinite;
     }
 
-    /* Respect reduced-motion preferences */
     @media (prefers-reduced-motion: reduce) {
       .rise, .shimmer::after { animation: none; }
-      * { scroll-behavior: auto !important; }
+      * { scroll-behavior: auto !important; transition: none !important; }
     }
 
-    /* Custom thin scrollbar */
-    ::-webkit-scrollbar { width: 10px; }
-    ::-webkit-scrollbar-thumb { background: #22222f; border-radius: 999px; border: 3px solid #0a0a0f; }
+    ::-webkit-scrollbar { width: 12px; }
+    ::-webkit-scrollbar-track { background: #ece7db; }
+    ::-webkit-scrollbar-thumb { background: #c9c2b1; border-radius: 0; border: 3px solid #ece7db; }
   </style>
 </head>
 
-<body class="min-h-screen font-sans text-zinc-200 antialiased selection:bg-accent/30">
-  <!-- ───────────────────────── Header / Hero ───────────────────────── -->
-  <header class="mx-auto max-w-6xl px-5 pt-16 pb-8 sm:pt-24 sm:pb-12">
-    <div class="flex flex-col items-center text-center">
-      <!-- Small eyebrow badge -->
-      <span class="mb-5 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-medium tracking-wide text-zinc-400">
-        <span class="h-1.5 w-1.5 rounded-full bg-accent shadow-[0_0_8px] shadow-accent"></span>
-        Vector search · powered by embeddings
-      </span>
+<body class="min-h-screen font-sans text-ink antialiased selection:bg-brick/20">
+  <!-- ───────────────────────── Top rule / wordmark ───────────────────────── -->
+  <div class="border-b border-line bg-paper/70 backdrop-blur">
+    <div class="mx-auto flex max-w-6xl items-center justify-between px-5 py-3.5">
+      <div class="flex items-baseline gap-3">
+        <span class="font-display text-base font-700 tracking-tight text-ink">Image&nbsp;Index</span>
+        <span class="label text-ink-faint">Vol. 01</span>
+      </div>
+      <span class="label text-ink-faint">Vector&nbsp;/&nbsp;Embedding&nbsp;Retrieval</span>
+    </div>
+  </div>
 
-      <h1 class="font-display text-4xl font-500 leading-tight tracking-tight text-white sm:text-6xl">
-        Image Semantic Search
-      </h1>
-      <p class="mt-4 max-w-xl text-balance text-base leading-relaxed text-zinc-400 sm:text-lg">
-        Describe what you're looking for in plain language. We rank the gallery by meaning, not filenames.
-      </p>
+  <!-- ───────────────────────── Header / editorial masthead ───────────────────────── -->
+  <header class="mx-auto max-w-6xl px-5 pt-12 sm:pt-16">
+    <div class="grid items-end gap-8 border-b border-line pb-10 md:grid-cols-12">
+      <!-- Title block (left, editorial) -->
+      <div class="md:col-span-7">
+        <p class="label mb-4 inline-flex items-center gap-2 text-brick">
+          <span class="inline-block h-1.5 w-1.5 rounded-full bg-brick"></span>
+          Search&nbsp;by&nbsp;meaning
+        </p>
+        <h1 class="font-display text-4xl font-700 leading-[1.02] tracking-tight text-ink sm:text-6xl">
+          Find an image by<br class="hidden sm:block" /> describing&nbsp;it.
+        </h1>
+      </div>
+      <!-- Standfirst (right column) -->
+      <div class="md:col-span-5 md:pb-1.5">
+        <p class="max-w-md text-[15px] leading-relaxed text-ink-soft">
+          Type a phrase in plain language. Each frame in the archive is ranked by how closely its
+          contents match your description. Filenames are never read.
+        </p>
+      </div>
+    </div>
 
-      <!-- Search bar -->
-      <form id="searchForm" class="mt-9 w-full max-w-2xl" autocomplete="off">
-        <div class="group relative flex items-center rounded-2xl border border-white/10 bg-ink-800/80 p-2 shadow-card backdrop-blur transition-all duration-300 focus-within:border-accent/50 focus-within:shadow-glow">
-          <!-- Search icon -->
-          <svg class="ml-3 h-5 w-5 shrink-0 text-zinc-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+    <!-- Search bar -->
+    <form id="searchForm" class="mt-8" autocomplete="off">
+      <div class="group flex items-stretch border border-ink bg-paper-raised shadow-[4px_4px_0_0_#1b1a17] transition-shadow duration-200 focus-within:shadow-[6px_6px_0_0_#b8432a]">
+        <span class="flex items-center pl-4 text-ink-faint">
+          <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75" aria-hidden="true">
             <circle cx="11" cy="11" r="7" /><path d="m21 21-4.3-4.3" stroke-linecap="round" />
           </svg>
-          <input
-            id="searchInput"
-            type="text"
-            inputmode="search"
-            autofocus
-            placeholder="Try “a dog running on the beach”…"
-            aria-label="Search query"
-            class="w-full bg-transparent px-3 py-2.5 text-base text-white placeholder:text-zinc-500 focus:outline-none"
-          />
-          <button
-            type="submit"
-            class="inline-flex shrink-0 items-center gap-2 rounded-xl bg-accent px-5 py-2.5 text-sm font-600 text-ink-950 transition-all duration-200 hover:bg-accent-soft active:scale-[0.97]"
-          >
-            Search
-            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
-              <path d="M5 12h14M13 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round" />
-            </svg>
-          </button>
-        </div>
-      </form>
-
-      <!-- Example query chips -->
-      <div class="mt-5 flex flex-wrap items-center justify-center gap-2" id="chips">
-        <span class="mr-1 text-xs text-zinc-500">Try:</span>
-        <!-- Chips injected by JS so they share one click handler -->
+        </span>
+        <input
+          id="searchInput"
+          type="text"
+          inputmode="search"
+          autofocus
+          placeholder="a dog running on the beach"
+          aria-label="Search query"
+          class="w-full bg-transparent px-4 py-4 text-base text-ink placeholder:text-ink-faint focus:outline-none"
+        />
+        <button
+          type="submit"
+          class="label flex shrink-0 items-center gap-2 border-l border-ink bg-brick px-5 text-white transition-colors duration-150 hover:bg-brick-deep focus:outline-none focus-visible:bg-brick-deep"
+        >
+          Search
+          <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.25" aria-hidden="true">
+            <path d="M5 12h14M13 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+        </button>
       </div>
+    </form>
+
+    <!-- Example query chips -->
+    <div class="mt-4 flex flex-wrap items-center gap-2.5" id="chips">
+      <span class="label mr-1 text-ink-faint">Examples</span>
+      <!-- Chips injected by JS so they share one click handler -->
     </div>
   </header>
 
   <!-- ───────────────────────── Results region ───────────────────────── -->
-  <main class="mx-auto max-w-6xl px-5 pb-24">
+  <main class="mx-auto max-w-6xl px-5 pb-24 pt-10">
     <!-- Meta bar: result count + timing -->
-    <div id="metaBar" class="mb-5 hidden items-center justify-between border-b border-white/5 pb-3 text-sm text-zinc-400">
-      <span id="metaText"></span>
-      <span id="metaQuery" class="truncate pl-4 text-zinc-500"></span>
+    <div id="metaBar" class="mb-6 hidden items-center justify-between border-y border-line py-2.5">
+      <span id="metaText" class="label text-ink"></span>
+      <span id="metaQuery" class="label truncate pl-4 text-ink-faint"></span>
     </div>
 
     <!-- Empty / idle state (shown before any search) -->
-    <section id="emptyState" class="flex flex-col items-center justify-center py-24 text-center">
-      <div class="mb-5 flex h-16 w-16 items-center justify-center rounded-2xl border border-white/10 bg-white/5">
-        <svg class="h-7 w-7 text-accent-soft" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
-          <rect x="3" y="3" width="18" height="18" rx="3" /><circle cx="8.5" cy="8.5" r="1.5" /><path d="m21 15-5-5L5 21" stroke-linecap="round" stroke-linejoin="round" />
+    <section id="emptyState" class="flex flex-col items-start py-20">
+      <div class="mb-5 flex h-12 w-12 items-center justify-center border border-ink bg-paper-raised">
+        <svg class="h-6 w-6 text-brick" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+          <rect x="3" y="3" width="18" height="18" /><circle cx="8.5" cy="8.5" r="1.5" /><path d="m21 15-5-5L5 21" stroke-linecap="round" stroke-linejoin="round" />
         </svg>
       </div>
-      <h2 class="font-display text-xl text-zinc-200">Search the gallery</h2>
-      <p class="mt-2 max-w-sm text-sm text-zinc-500">
-        Pick an example above or type your own description to see semantically ranked results.
+      <h2 class="font-display text-2xl font-600 text-ink">The archive is waiting</h2>
+      <p class="mt-2 max-w-md text-[15px] leading-relaxed text-ink-soft">
+        Pick an example above, or describe the picture you have in mind. Results are ordered by
+        semantic similarity, most relevant first.
       </p>
     </section>
 
     <!-- Error state -->
-    <section id="errorState" class="hidden flex-col items-center justify-center py-24 text-center">
-      <div class="mb-5 flex h-16 w-16 items-center justify-center rounded-2xl border border-red-500/20 bg-red-500/10">
-        <svg class="h-7 w-7 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+    <section id="errorState" class="hidden flex-col items-start py-20">
+      <div class="mb-5 flex h-12 w-12 items-center justify-center border border-brick-deep bg-brick-wash">
+        <svg class="h-6 w-6 text-brick-deep" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
           <path d="M12 9v4m0 4h.01M10.3 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.7 3.86a2 2 0 0 0-3.42 0Z" stroke-linecap="round" stroke-linejoin="round" />
         </svg>
       </div>
-      <h2 class="font-display text-xl text-zinc-200">Something went wrong</h2>
-      <p id="errorText" class="mt-2 max-w-sm text-sm text-zinc-500">We couldn't reach the search service. Please try again.</p>
-      <button id="retryBtn" class="mt-6 rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-500 text-zinc-200 transition hover:bg-white/10">
-        Retry
+      <h2 class="font-display text-2xl font-600 text-ink">Search unavailable</h2>
+      <p id="errorText" class="mt-2 max-w-md text-[15px] leading-relaxed text-ink-soft">We couldn't reach the search service. Please try again.</p>
+      <button id="retryBtn" class="label mt-6 border border-ink bg-paper-raised px-4 py-2.5 text-ink transition-colors hover:bg-ink hover:text-paper">
+        Retry search
       </button>
     </section>
 
     <!-- No-results state -->
-    <section id="noResultsState" class="hidden flex-col items-center justify-center py-24 text-center">
-      <h2 class="font-display text-xl text-zinc-200">No matches found</h2>
-      <p class="mt-2 max-w-sm text-sm text-zinc-500">Try a broader or different description.</p>
+    <section id="noResultsState" class="hidden flex-col items-start py-20">
+      <h2 class="font-display text-2xl font-600 text-ink">Nothing close enough</h2>
+      <p class="mt-2 max-w-md text-[15px] leading-relaxed text-ink-soft">No frame matched that description well. Try broader or different wording.</p>
     </section>
 
-    <!-- Results grid (masonry) -->
-    <section id="results" class="masonry hidden"></section>
+    <!-- Results grid (clean contact-sheet index) -->
+    <section
+      id="results"
+      class="hidden grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4"
+    ></section>
   </main>
 
   <!-- ───────────────────────── Lightbox modal ───────────────────────── -->
@@ -203,20 +228,20 @@
     aria-label="Image preview"
   >
     <!-- Backdrop (click to close) -->
-    <div id="lightboxBackdrop" class="absolute inset-0 bg-ink-950/85 backdrop-blur-md"></div>
+    <div id="lightboxBackdrop" class="absolute inset-0 bg-ink/80 backdrop-blur-sm"></div>
 
-    <figure class="rise relative z-10 flex max-h-full max-w-5xl flex-col items-center">
-      <img id="lightboxImg" src="" alt="" class="max-h-[80vh] w-auto rounded-2xl shadow-2xl ring-1 ring-white/10" />
-      <figcaption class="mt-4 flex items-center gap-3 text-sm text-zinc-300">
-        <span id="lightboxName" class="font-500"></span>
-        <span id="lightboxScore" class="rounded-full bg-accent/20 px-2.5 py-0.5 text-xs font-600 text-accent-soft"></span>
+    <figure class="rise relative z-10 flex max-h-full w-auto max-w-4xl flex-col">
+      <img id="lightboxImg" src="" alt="" class="max-h-[78vh] w-auto border border-ink bg-paper object-contain" />
+      <figcaption class="mt-3 flex items-center justify-between gap-4 border-t border-line/40 pt-3">
+        <span id="lightboxName" class="label text-paper"></span>
+        <span id="lightboxScore" class="label text-brick"></span>
       </figcaption>
 
       <!-- Close button -->
       <button
         id="lightboxClose"
         aria-label="Close preview"
-        class="absolute -top-3 -right-3 flex h-9 w-9 items-center justify-center rounded-full border border-white/15 bg-ink-800 text-zinc-300 shadow-lg transition hover:bg-ink-700 hover:text-white"
+        class="absolute -top-3 -right-3 flex h-10 w-10 items-center justify-center border border-ink bg-brick text-white shadow-[3px_3px_0_0_#1b1a17] transition-colors hover:bg-brick-deep"
       >
         <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
           <path d="M6 6l12 12M18 6 6 18" stroke-linecap="round" />
@@ -226,8 +251,11 @@
   </div>
 
   <!-- ───────────────────────── Footer ───────────────────────── -->
-  <footer class="border-t border-white/5 py-8 text-center text-xs text-zinc-600">
-    Semantic image search demo · type a phrase, get ranked matches
+  <footer class="border-t border-line">
+    <div class="mx-auto flex max-w-6xl flex-col items-start justify-between gap-1 px-5 py-6 sm:flex-row sm:items-center">
+      <span class="label text-ink-faint">Image Index · semantic image search</span>
+      <span class="label text-ink-faint">Type a phrase · get ranked frames</span>
+    </div>
   </footer>
 
   <!-- ───────────────────────── Logic (vanilla JS) ───────────────────────── -->
@@ -274,6 +302,7 @@
       // The results grid + meta bar are only visible in "loading"/"results".
       const showGrid = state === "results" || state === "loading";
       els.results.classList.toggle("hidden", !showGrid);
+      els.results.classList.toggle("grid", showGrid);
       els.metaBar.classList.toggle("hidden", state !== "results");
       els.metaBar.classList.toggle("flex", state === "results");
     }
@@ -293,52 +322,60 @@
 
     // --- Rendering ----------------------------------------------------------
 
-    // Inject placeholder skeleton cards with varied heights (masonry feel).
+    // Inject placeholder skeleton tiles (uniform contact-sheet grid).
     function renderSkeletons() {
-      const heights = [220, 300, 180, 260, 320, 200, 280, 240, 300, 190, 260, 230];
-      els.results.innerHTML = heights
+      els.results.innerHTML = Array.from({ length: RESULT_COUNT })
         .map(
-          (h) => `
-          <div class="rise overflow-hidden rounded-2xl border border-white/5 bg-ink-800">
-            <div class="shimmer relative bg-ink-700" style="height:${h}px"></div>
+          () => `
+          <div class="rise border border-line bg-paper-raised">
+            <div class="shimmer relative aspect-square bg-paper-sunk"></div>
+            <div class="flex items-center justify-between border-t border-line px-2.5 py-2">
+              <div class="h-2.5 w-20 bg-paper-sunk"></div>
+              <div class="h-2.5 w-8 bg-paper-sunk"></div>
+            </div>
           </div>`
         )
         .join("");
     }
 
-    // Render the actual result cards.
+    // Render the actual result cards (numbered, captioned index entries).
     function renderResults(results) {
       els.results.innerHTML = results
         .map((r, i) => {
           const name = escapeHtml(r.filename ?? "");
           const score = formatScore(r.score);
           const scoreWidth = Math.max(4, Math.min(100, Number(r.score) * 100));
+          const rank = String(i + 1).padStart(2, "0");
           // Stagger the entrance animation slightly per card.
-          const delay = Math.min(i * 40, 480);
+          const delay = Math.min(i * 35, 420);
           return `
           <button
             type="button"
-            class="group rise relative block w-full overflow-hidden rounded-2xl border border-white/5 bg-ink-800 text-left shadow-card transition-all duration-300 hover:-translate-y-1 hover:border-accent/30 hover:shadow-glow focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+            class="group rise relative block w-full border border-line bg-paper-raised text-left transition-all duration-200 hover:-translate-y-0.5 hover:border-ink hover:shadow-[4px_4px_0_0_#1b1a17] focus:outline-none focus-visible:border-ink focus-visible:shadow-[4px_4px_0_0_#b8432a]"
             style="animation-delay:${delay}ms"
             data-image="${escapeHtml(r.image_url)}"
             data-name="${name}"
             data-score="${score}"
           >
-            <img
-              src="${escapeHtml(r.thumb_url)}"
-              alt="${name}"
-              loading="lazy"
-              class="w-full object-cover transition-transform duration-500 group-hover:scale-[1.04]"
-            />
-            <!-- Hover overlay: filename + score -->
-            <div class="pointer-events-none absolute inset-x-0 bottom-0 translate-y-1 bg-gradient-to-t from-ink-950/95 via-ink-950/60 to-transparent p-3 pt-8 opacity-0 transition-all duration-300 group-hover:translate-y-0 group-hover:opacity-100">
+            <div class="relative aspect-square overflow-hidden bg-paper-sunk">
+              <img
+                src="${escapeHtml(r.thumb_url)}"
+                alt="${name}"
+                loading="lazy"
+                class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.05]"
+              />
+              <!-- Rank marker, archival index style -->
+              <span class="label absolute left-0 top-0 bg-ink px-1.5 py-1 text-paper">${rank}</span>
+            </div>
+            <!-- Permanent caption row: filename + score (catalog index) -->
+            <div class="border-t border-line px-2.5 py-2">
               <div class="flex items-center justify-between gap-2">
-                <span class="truncate text-xs font-500 text-zinc-100">${name}</span>
-                <span class="shrink-0 rounded-full bg-accent/25 px-2 py-0.5 text-[11px] font-600 text-accent-soft">${score}</span>
+                <span class="label truncate text-ink-soft group-hover:text-ink">${name}</span>
+                <span class="label shrink-0 text-brick">${score}</span>
               </div>
-              <!-- Thin score bar -->
-              <div class="mt-2 h-1 w-full overflow-hidden rounded-full bg-white/10">
-                <div class="h-full rounded-full bg-accent" style="width:${scoreWidth}%"></div>
+              <!-- Thin similarity meter -->
+              <div class="mt-1.5 h-[3px] w-full bg-paper-sunk">
+                <div class="h-full bg-brick" style="width:${scoreWidth}%"></div>
               </div>
             </div>
           </button>`;
@@ -390,11 +427,11 @@
         renderResults(results);
         showState("results");
 
-        // Meta line: "12 results in 14 ms"
+        // Meta line: "12 RESULTS · 14 MS"
         const ms = typeof data.took_ms === "number" ? Math.round(data.took_ms) : null;
         const count = results.length;
         els.metaText.textContent =
-          `${count} result${count === 1 ? "" : "s"}` + (ms !== null ? ` in ${ms} ms` : "");
+          `${count} result${count === 1 ? "" : "s"}` + (ms !== null ? ` · ${ms} ms` : "");
         els.metaQuery.textContent = data.query ? `“${data.query}”` : "";
       } catch (err) {
         els.errorText.textContent =
@@ -412,7 +449,7 @@
       chip.type = "button";
       chip.textContent = q;
       chip.className =
-        "rounded-full border border-white/10 bg-white/5 px-3.5 py-1.5 text-sm text-zinc-300 transition-all duration-200 hover:border-accent/40 hover:bg-accent/10 hover:text-white active:scale-95";
+        "border border-line bg-paper-raised px-3 py-1.5 text-sm text-ink-soft transition-colors duration-150 hover:border-ink hover:bg-ink hover:text-paper focus:outline-none focus-visible:border-ink";
       chip.addEventListener("click", () => runSearch(q));
       els.chips.appendChild(chip);
     });

@@ -38,6 +38,10 @@ pip install -r requirements.txt
 #    This embeds each image and writes vectors + thumbnails to data/index/.
 python -m src.index data/images
 
+#    Later, after adding or removing images, sync incrementally instead of
+#    re-embedding everything (only new images are encoded):
+python -m src.index data/images --update
+
 # 3. Run the server.
 uvicorn src.app:app --reload
 
@@ -145,8 +149,8 @@ and index are loaded once at startup (not per request), and thumbnails are serve
 static files, so rendering a page of results never touches the originals.
 
 **Limitations / what is next.**
-- The index is static: adding or removing images means rebuilding (`python -m src.index`).
-  An incremental append + delete path would help.
+- The index loads fully into memory at startup; `--update` syncs changes incrementally
+  (embedding only new images), but there is no live hot-reload while the server runs.
 - Everything is in memory and single-process; there is no auth, pagination, or
   horizontal scaling.
 - Search is a full linear scan, fine at folder scale, but see the FAISS/pgvector note

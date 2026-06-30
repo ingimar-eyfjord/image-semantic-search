@@ -46,6 +46,12 @@ language, ranked by meaning rather than filenames or tags.
   similarity, and that the static mounts are ordered after the API and root routes so `/api` and
   `/` are not shadowed. A real indexing run plus live queries confirmed both, which a linter
   alone could not.
+- **Tuned the relevance threshold with a fan-out eval, not a guess.** A workflow ran one agent
+  per query in parallel against the live API, each judging every returned result for relevance;
+  the pooled judgements were swept across candidate `min_score` values to pick the one that
+  maximized F1. `eval.py` ships the same idea as a reproducible offline harness (top-1 accuracy +
+  precision@5 + the sweep), and its recommended cutoff is the API default. The model is fixed
+  CLIP; the honing happened at the retrieval layer, measured rather than eyeballed.
 
 ## Where I used judgment over automation
 
