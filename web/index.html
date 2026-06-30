@@ -559,9 +559,9 @@
           "Indexed " + filename +
           (total !== null ? " · " + total + " image" + (total === 1 ? "" : "s") + " in the archive" : "");
 
-        // Surface the new image immediately via the existing search flow.
-        const query = String(filename).replace(/\.[^./\\]+$/, "").replace(/[_-]+/g, " ").trim();
-        if (query) runSearch(query);
+        // Refresh the current results so the new image can appear in context, without
+        // putting the (often messy) uploaded filename into the search box.
+        if (lastQuery) runSearch(lastQuery);
       } catch (err) {
         brickDropZone();
         els.dropLabel.textContent = "Upload failed";
