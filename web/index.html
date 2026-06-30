@@ -168,6 +168,25 @@
       <span class="label mr-1 text-ink-faint">Examples</span>
       <!-- Chips injected by JS so they share one click handler -->
     </div>
+
+    <!-- Add-to-archive drop zone -->
+    <button
+      type="button"
+      id="dropZone"
+      aria-label="Add an image to the archive"
+      class="mt-5 flex w-full items-center gap-4 border border-dashed border-line bg-paper-raised px-4 py-3 text-left transition-colors duration-150 hover:border-ink focus:outline-none focus-visible:border-ink"
+    >
+      <span class="flex h-9 w-9 shrink-0 items-center justify-center border border-ink bg-paper text-brick">
+        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75" aria-hidden="true">
+          <path d="M12 5v14M5 12h14" stroke-linecap="round" />
+        </svg>
+      </span>
+      <span class="min-w-0">
+        <span id="dropLabel" class="label block text-ink">Add to archive</span>
+        <span id="dropHelp" class="mt-0.5 block text-[13px] leading-snug text-ink-soft">Drop an image here, or click to choose. It is indexed instantly and becomes searchable.</span>
+      </span>
+    </button>
+    <input id="fileInput" type="file" accept="image/*" class="hidden" />
   </header>
 
   <!-- ───────────────────────── Results region ───────────────────────── -->
@@ -283,6 +302,11 @@
       lightboxScore:   document.getElementById("lightboxScore"),
       lightboxClose:   document.getElementById("lightboxClose"),
       lightboxBackdrop:document.getElementById("lightboxBackdrop"),
+      // Add-to-archive drop zone
+      dropZone:    document.getElementById("dropZone"),
+      dropLabel:   document.getElementById("dropLabel"),
+      dropHelp:    document.getElementById("dropHelp"),
+      fileInput:   document.getElementById("fileInput"),
     };
 
     const EXAMPLE_QUERIES = ["a dog", "snowy mountains", "something to eat", "a fast car"];
@@ -475,6 +499,102 @@
     els.lightboxBackdrop.addEventListener("click", closeLightbox);
     document.addEventListener("keydown", (e) => {
       if (e.key === "Escape" && !els.lightbox.classList.contains("hidden")) closeLightbox();
+    });
+
+    // --- Add to archive (image upload) -------------------------------------
+
+    const DROP_DEFAULT_LABEL = "Add to archive";
+    const DROP_DEFAULT_HELP =
+      "Drop an image here, or click to choose. It is indexed instantly and becomes searchable.";
+    let uploading = false;
+
+    // Reset the drop zone to its neutral, paper-raised resting state.
+    function resetDropZone() {
+      els.dropZone.className =
+        "mt-5 flex w-full items-center gap-4 border border-dashed border-line bg-paper-raised px-4 py-3 text-left transition-colors duration-150 hover:border-ink focus:outline-none focus-visible:border-ink";
+      els.dropLabel.textContent = DROP_DEFAULT_LABEL;
+      els.dropLabel.classList.remove("text-brick");
+      els.dropLabel.classList.add("text-ink");
+      els.dropHelp.textContent = DROP_DEFAULT_HELP;
+    }
+
+    // Brick-accented feedback (used for both dragover and error states).
+    function brickDropZone() {
+      els.dropZone.className =
+        "mt-5 flex w-full items-center gap-4 border border-dashed border-brick bg-brick-wash px-4 py-3 text-left transition-colors duration-150 focus:outline-none";
+      els.dropLabel.classList.remove("text-ink");
+      els.dropLabel.classList.add("text-brick");
+    }
+
+    async function uploadFile(file) {
+      if (!file || uploading) return;
+      if (!file.type || !file.type.startsWith("image/")) {
+        brickDropZone();
+        els.dropLabel.textContent = "Not an image";
+        els.dropHelp.textContent = "Please choose an image file (JPEG, PNG, etc.).";
+        return;
+      }
+
+      uploading = true;
+      resetDropZone();
+      els.dropLabel.textContent = "Indexing...";
+      els.dropHelp.textContent = "Adding " + file.name + " to the archive.";
+
+      try {
+        const formData = new FormData();
+        formData.append("file", file);
+
+        const res = await fetch("/api/images", { method: "POST", body: formData });
+        const data = await res.json().catch(() => ({}));
+
+        if (!res.ok) {
+          throw new Error(data && data.detail ? data.detail : `Upload failed (${res.status})`);
+        }
+
+        const filename = data.filename || file.name;
+        const total = typeof data.total === "number" ? data.total : null;
+        resetDropZone();
+        els.dropLabel.textContent = "Indexed";
+        els.dropHelp.textContent =
+          "Indexed " + filename +
+          (total !== null ? " · " + total + " image" + (total === 1 ? "" : "s") + " in the archive" : "");
+
+        // Surface the new image immediately via the existing search flow.
+        const query = String(filename).replace(/\.[^./\\]+$/, "").replace(/[_-]+/g, " ").trim();
+        if (query) runSearch(query);
+      } catch (err) {
+        brickDropZone();
+        els.dropLabel.textContent = "Upload failed";
+        els.dropHelp.textContent = err && err.message ? err.message : "Could not index that image.";
+        console.error("Upload error:", err);
+      } finally {
+        uploading = false;
+        els.fileInput.value = "";
+      }
+    }
+
+    // Click to choose.
+    els.dropZone.addEventListener("click", () => {
+      if (!uploading) els.fileInput.click();
+    });
+    els.fileInput.addEventListener("change", () => {
+      if (els.fileInput.files && els.fileInput.files[0]) uploadFile(els.fileInput.files[0]);
+    });
+
+    // Drag and drop.
+    els.dropZone.addEventListener("dragover", (e) => {
+      e.preventDefault();
+      if (!uploading) brickDropZone();
+    });
+    els.dropZone.addEventListener("dragleave", (e) => {
+      e.preventDefault();
+      if (!uploading) resetDropZone();
+    });
+    els.dropZone.addEventListener("drop", (e) => {
+      e.preventDefault();
+      resetDropZone();
+      const file = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+      if (file) uploadFile(file);
     });
 
     // Initial state.

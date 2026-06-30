@@ -11,12 +11,12 @@ import time
 from pathlib import Path
 
 import numpy as np
-from fastapi import FastAPI, Query
+from fastapi import FastAPI, File, HTTPException, Query, UploadFile
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 from .embeddings import ClipEmbedder
-from .index import load_index
+from .index import _make_thumbnail, _save, load_index
 
 IMAGE_DIR = Path("data/images")
 INDEX_DIR = Path("data/index")
@@ -57,6 +57,34 @@ def search(
     ]
     took_ms = round((time.perf_counter() - start) * 1000, 1)
     return {"query": q, "took_ms": took_ms, "results": results}
+
+
+@app.post("/api/images")
+async def add_image(file: UploadFile = File(...)) -> dict:  # noqa: B008 (FastAPI idiom)
+    """Add one uploaded image to the live index, embedding only that image.
+
+    This is the incremental index path exposed over HTTP: the new vector is appended to
+    the in-memory matrix (and persisted) so the image is searchable immediately, without
+    re-embedding the rest of the folder.
+    """
+    global _vectors, _filenames
+    name = Path(file.filename or "upload.jpg").name
+    dest = IMAGE_DIR / name
+    if dest.exists():  # don't clobber an existing image
+        dest = IMAGE_DIR / f"{dest.stem}-{len(_filenames)}{dest.suffix}"
+
+    dest.write_bytes(await file.read())
+    try:
+        vector = _embedder.embed_images([dest])  # opening the file validates it is an image
+    except Exception as exc:
+        dest.unlink(missing_ok=True)
+        raise HTTPException(status_code=400, detail="Could not read that file as an image") from exc
+
+    _make_thumbnail(dest, INDEX_DIR / "thumbs")
+    _vectors = np.vstack([_vectors, vector])
+    _filenames.append(dest.name)
+    _save(INDEX_DIR, _vectors, _filenames)
+    return {"filename": dest.name, "indexed": True, "total": len(_filenames)}
 
 
 @app.get("/")
